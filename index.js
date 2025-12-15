@@ -13,3 +13,8 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`The server is running on ${PORT}`);
 });
+
+// default route
+app.use((req, res) => {
+  res.status(404).json({ status: "404: Bad Request" });
+});
