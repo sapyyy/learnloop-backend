@@ -339,4 +339,54 @@ router.delete("/resources/:resourceId", auth, isTeacher, async (req, res) => {
   }
 });
 
+// pratham changes
+// GET /teacher/courses/:courseId/content
+// Teacher fetches details, assignments, and resources for a course they own
+router.get("/courses/:courseId/content", auth, isTeacher, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    // 1. Verify and fetch the Course details (must belong to this teacher)
+    const course = await Course.findOne({
+      _id: courseId,
+      teacherId: req.user.userId,
+    }).select("name code description createdAt");
+
+    if (!course) {
+      return res.status(404).json({
+        message: "Course not found or you are not the owner.",
+      });
+    }
+
+    // 2. Fetch all Assignments for this course
+    const assignments = await Assignment.find({
+      courseId,
+    })
+      .sort({ due_date: 1 })
+      .select("title description due_date createdAt");
+
+    // 3. Fetch all Resources for this course
+    const resources = await Resource.find({
+      courseId,
+    })
+      .sort({ createdAt: -1 })
+      .select("title fileUrl createdAt");
+
+    // Return all collected data in the structure the frontend expects
+    return res.status(200).json({
+      course,
+      assignments,
+      resources,
+    });
+  } catch (error) {
+    console.error("Fetch Course Content Error:", error);
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid Course ID format." });
+    }
+    return res.status(500).json({
+      message: "Failed to fetch course content.",
+    });
+  }
+});
+
 module.exports = router;
