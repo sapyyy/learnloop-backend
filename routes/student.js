@@ -7,6 +7,7 @@ const {
   Course,
   Student,
   Submission,
+  Resource,
 } = require("../db/mongo");
 
 const auth = require("../middlewares/auth");
