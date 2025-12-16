@@ -154,6 +154,78 @@ router.post(
   }
 );
 
+// teacher list assignments
+router.get(
+  "/courses/:courseId/assignments",
+  auth,
+  isTeacher,
+  async (req, res) => {
+    try {
+      const { courseId } = req.params;
+
+      // Ensure course belongs to this teacher
+      const course = await Course.findOne({
+        _id: courseId,
+        teacherId: req.user.userId,
+      });
+
+      if (!course) {
+        return res.status(403).json({
+          message: "You are not authorized to view assignments for this course",
+        });
+      }
+
+      const assignments = await Assignment.find({ courseId })
+        .sort({ due_date: 1 })
+        .select("_id title description due_date createdAt");
+
+      return res.status(200).json({
+        assignments,
+      });
+    } catch (error) {
+      console.error("Teacher List Assignments Error:", error);
+      return res.status(500).json({
+        message: "Failed to fetch assignments",
+      });
+    }
+  }
+);
+
+// teacher delete assignment
+router.delete(
+  "/assignments/:assignmentId",
+  auth,
+  isTeacher,
+  async (req, res) => {
+    try {
+      const { assignmentId } = req.params;
+
+      // Delete only if assignment belongs to this teacher
+      const deletedAssignment = await Assignment.findOneAndDelete({
+        _id: assignmentId,
+        teacherId: req.user.userId,
+      });
+
+      if (!deletedAssignment) {
+        return res.status(404).json({
+          message:
+            "Assignment not found or you are not authorized to delete it",
+        });
+      }
+
+      return res.status(200).json({
+        message: "Assignment deleted successfully",
+        assignmentId: deletedAssignment._id,
+      });
+    } catch (error) {
+      console.error("Delete Assignment Error:", error);
+      return res.status(500).json({
+        message: "Failed to delete assignment",
+      });
+    }
+  }
+);
+
 // teacher upload resource under course section
 router.post(
   "/courses/:courseId/resources",
@@ -201,5 +273,70 @@ router.post(
     }
   }
 );
+
+// list all resources
+router.get(
+  "/courses/:courseId/resources",
+  auth,
+  isTeacher,
+  async (req, res) => {
+    try {
+      const { courseId } = req.params;
+
+      // Ensure course belongs to this teacher
+      const course = await Course.findOne({
+        _id: courseId,
+        teacherId: req.user.userId,
+      });
+
+      if (!course) {
+        return res.status(403).json({
+          message: "You are not authorized to view resources for this course",
+        });
+      }
+
+      const resources = await Resource.find({ courseId })
+        .sort({ createdAt: -1 })
+        .select("_id title fileUrl createdAt");
+
+      return res.status(200).json({
+        resources,
+      });
+    } catch (error) {
+      console.error("Teacher List Resources Error:", error);
+      return res.status(500).json({
+        message: "Failed to fetch resources",
+      });
+    }
+  }
+);
+
+// delete resourceId
+router.delete("/resources/:resourceId", auth, isTeacher, async (req, res) => {
+  try {
+    const { resourceId } = req.params;
+
+    const deletedResource = await Resource.findOneAndDelete({
+      _id: resourceId,
+      teacherId: req.user.userId,
+    });
+
+    if (!deletedResource) {
+      return res.status(404).json({
+        message: "Resource not found or you are not authorized to delete it",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Resource deleted successfully",
+      resourceId: deletedResource._id,
+    });
+  } catch (error) {
+    console.error("Delete Resource Error:", error);
+    return res.status(500).json({
+      message: "Failed to delete resource",
+    });
+  }
+});
 
 module.exports = router;
