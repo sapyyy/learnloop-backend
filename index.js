@@ -5,7 +5,9 @@ const authRouter = require("./routes/auth");
 const teacherRouter = require("./routes/teacher");
 const app = express();
 const PORT = process.env.PORT || 3000;
+const cors = require("cors");
 
+app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
