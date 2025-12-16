@@ -396,4 +396,70 @@ router.get("/courses/:courseId/content", auth, isTeacher, async (req, res) => {
   }
 });
 
+// get all enrolled student, basic info, their submissions, whether they submitted or not
+router.get(
+  "/courses/:courseId/students/submissions",
+  auth,
+  isTeacher,
+  async (req, res) => {
+    try {
+      const { courseId } = req.params;
+
+      // Ensure course belongs to this teacher
+      const course = await Course.findOne({
+        _id: courseId,
+        teacherId: req.user.userId,
+      });
+
+      if (!course) {
+        return res.status(403).json({
+          message: "You are not authorized to view this course",
+        });
+      }
+
+      // Get all assignments for this course
+      const assignments = await Assignment.find({ courseId }).select(
+        "_id title due_date"
+      );
+
+      // Get all enrolled students
+      const enrollments = await Enrollment.find({ courseId }).populate({
+        path: "studentId",
+        select: "_id name",
+      });
+
+      // Build response
+      const students = await Promise.all(
+        enrollments.map(async (enroll) => {
+          const submissions = await Submission.find({
+            studentId: enroll.studentId._id,
+            assignmentId: { $in: assignments.map((a) => a._id) },
+          }).select("assignmentId submissionFile marks submittedAt");
+
+          return {
+            studentId: enroll.studentId._id,
+            name: enroll.studentId.name,
+            submissions,
+          };
+        })
+      );
+
+      return res.status(200).json({
+        course: {
+          id: course._id,
+          name: course.name,
+          code: course.code,
+        },
+        assignments,
+        students,
+      });
+    } catch (error) {
+      console.error("Teacher View Student Submissions Error:", error);
+      return res.status(500).json({
+        message: "Failed to fetch student submissions",
+      });
+    }
+  }
+);
+
 module.exports = router;
