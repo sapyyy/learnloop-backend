@@ -9,7 +9,7 @@ const registerSchema = z
     userType: z.enum(["student", "teacher"]),
     name: z.string().min(1, { message: "Name is required" }),
 
-    courseYear: z.number().int().min(1).max(6).optional(),
+    courseYear: z.coerce.number().int().min(1).max(6).optional(),
     department: z.string().min(1).optional(),
   })
   .refine(
@@ -32,11 +32,14 @@ const validateRegistration = (req, res, next) => {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        message: error.errors[0].message,
-        errors: error.errors,
+        message: error.issues[0].message,
+        errors: error.issues,
       });
     }
-    return res.status(500).json({ message: "Internal Server Error" });
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
   }
 };
 

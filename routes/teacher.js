@@ -76,6 +76,35 @@ router.get("/courses", auth, isTeacher, async (req, res) => {
   }
 });
 
+// delete particular course
+router.delete("/courses/:courseId", auth, isTeacher, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    // Delete only if the course belongs to this teacher
+    const deletedCourse = await Course.findOneAndDelete({
+      _id: courseId,
+      teacherId: req.user.userId,
+    });
+
+    if (!deletedCourse) {
+      return res.status(404).json({
+        message: "Course not found or you are not authorized to delete it",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Course deleted successfully",
+      courseId: deletedCourse._id,
+    });
+  } catch (error) {
+    console.error("Delete Course Error:", error);
+    return res.status(500).json({
+      message: "Failed to delete course",
+    });
+  }
+});
+
 // teacher creates an assignment
 router.post(
   "/courses/:courseId/assignments",
