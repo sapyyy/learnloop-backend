@@ -1,6 +1,16 @@
 const express = require("express");
 const router = express.Router();
 
+// --- Utility to get student profile ID ---
+// Assuming this helper function is available in student.js
+const getStudentProfileId = async (userId) => {
+  const studentProfile = await Student.findOne({ userId }).select("_id");
+  if (!studentProfile) {
+    throw new Error("Student profile not found.");
+  }
+  return studentProfile._id;
+};
+
 const {
   Assignment,
   Enrollment,
@@ -277,16 +287,6 @@ router.post(
 // pratham's part
 // LEARNLOOP-BACKEND/routes/student.js (Add this route)
 
-// --- Utility to get student profile ID ---
-// Assuming this helper function is available in student.js
-const getStudentProfileId = async (userId) => {
-  const studentProfile = await Student.findOne({ userId }).select("_id");
-  if (!studentProfile) {
-    throw new Error("Student profile not found.");
-  }
-  return studentProfile._id;
-};
-
 // GET /student/courses/:courseId/content
 // Get course details, assignments, and resources for an enrolled student.
 router.get("/courses/:courseId/content", auth, isStudent, async (req, res) => {
@@ -333,5 +333,54 @@ router.get("/courses/:courseId/content", auth, isStudent, async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch course content." });
   }
 });
+
+// view resources
+router.get(
+  "/courses/:courseId/resources",
+  auth,
+  isStudent,
+  async (req, res) => {
+    try {
+      const { courseId } = req.params;
+
+      // Find student profile
+      const student = await Student.findOne({
+        userId: req.user.userId,
+      });
+
+      if (!student) {
+        return res.status(404).json({
+          message: "Student profile not found",
+        });
+      }
+
+      // Check enrollment
+      const enrollment = await Enrollment.findOne({
+        studentId: student._id,
+        courseId,
+      });
+
+      if (!enrollment) {
+        return res.status(403).json({
+          message: "You are not enrolled in this course",
+        });
+      }
+
+      // Fetch resources
+      const resources = await Resource.find({ courseId })
+        .sort({ createdAt: -1 })
+        .select("_id title fileUrl createdAt");
+
+      return res.status(200).json({
+        resources,
+      });
+    } catch (error) {
+      console.error("Student View Resources Error:", error);
+      return res.status(500).json({
+        message: "Failed to fetch resources",
+      });
+    }
+  }
+);
 
 module.exports = router;

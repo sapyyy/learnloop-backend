@@ -2,7 +2,14 @@ const express = require("express");
 const router = express.Router();
 
 // Models
-const { Resource, Assignment, Course } = require("../db/mongo");
+const {
+  Resource,
+  Assignment,
+  Course,
+  Enrollment,
+  Submission,
+  Student,
+} = require("../db/mongo");
 
 // Middlewares
 const auth = require("../middlewares/auth");
